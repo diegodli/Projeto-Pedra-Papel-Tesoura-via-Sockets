@@ -1,4 +1,5 @@
 import socket
+from time import sleep
 
 def obter_escolha_valida(jogador_nome):
     """Obtém uma escolha válida (pedra, papel, tesoura) do jogador."""
@@ -11,26 +12,30 @@ def obter_escolha_valida(jogador_nome):
             print("Jogada inválida. Tente novamente.")
 
 def main():
-    host = '127.0.0.1'  # localhost
+    host = '192.168.243.26'  # localhost
     port = 65432
-
-    # Cliente (Jogador 1) faz sua jogada ANTES de enviar ao servidor
-    escolha_cliente = obter_escolha_valida("Você (Jogador 1)")
-    print(f"Você escolheu: {escolha_cliente.capitalize()}. Aguardando o Servidor (Jogador 2) fazer a jogada...")
 
     # Cria o socket TCP/IP do cliente
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
             s.connect((host, port))
-            print("Conectado ao servidor.")
+            print("Conectado ao servidor.\n")
+            print(" =============  BEM-VINDO AO JOGO PEDRA PAPEL TESOURA ============ \n")
+            print("Você (Cliente) começa jogando!")
 
-            # Aguarda o sinal do servidor indicando que ele já jogou
-            sinal_servidor = s.recv(1024).decode('utf-8')
-
-            if sinal_servidor == "SERVIDOR_PRONTO":
-                print("Servidor pronto. Enviando sua jogada...")
-                # Envia a jogada do cliente para o servidor
+            novo_jogo = False
+            while True:
+                if novo_jogo:
+                    print("MAIS UMA RODADA!!!")
+                    print("")
+                # Cliente (Jogador 1) faz sua jogada ANTES de enviar ao servidor
+                escolha_cliente = obter_escolha_valida("Você (Jogador 1)")
+                print(f"Você escolheu: {escolha_cliente.capitalize()}. Aguardando o Servidor (Jogador 2) fazer a jogada...")
+                # envia ao servidor a escolha do cliente
                 s.sendall(escolha_cliente.encode('utf-8'))
+
+                # cliente recebe jogada do servidor
+                resposta_servidor = s.recv(1024).decode('utf-8')
 
                 # Recebe o resultado do jogo
                 resultado_bytes = s.recv(1024)
@@ -41,9 +46,29 @@ def main():
 
                 print(f"\n--- Resultado Recebido ---")
                 print(f"Sua jogada: {escolha_cliente.capitalize()}")
-                print(f"Resultado do jogo: {resultado}")
-            else:
-                print(f"Sinal inesperado do servidor: {sinal_servidor}")
+                print(f"Jogada do Jogador 2 (Servidor): {resposta_servidor}")
+                print(f"Resultado do jogo ... \n")
+                sleep(0.5)
+                print(resultado)
+
+                while True:
+                    continuar_jogando = input("DESEJA CONTINUAR JOGANDO? (S) para sim (N) para nao: ").lower().strip()
+                    s.sendall(continuar_jogando.encode('utf-8'))
+                    if continuar_jogando == 's':
+                        novo_jogo = True
+                        break
+                    elif continuar_jogando == 'n':
+                        print("JOGO FINALIZADO. VOLTE SEMPRE ... :)")
+                        sleep(1)
+                        return
+                    else:
+                        print("RESPOSTA INVÁLIDA. DIGITE NOVAMENTE")
+
+                else:
+                    print(f"Sinal inesperado do servidor: {sinal_servidor}")
+                
+                if novo_jogo:
+                    continue
 
         except ConnectionRefusedError:
             print(f"Não foi possível conectar ao servidor em {host}:{port}. Verifique se o servidor está rodando.")

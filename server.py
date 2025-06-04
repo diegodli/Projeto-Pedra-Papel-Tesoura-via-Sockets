@@ -1,4 +1,5 @@
 import socket
+from time import sleep
 
 def determinar_vencedor(escolha_cliente, escolha_servidor):
     """Determina o vencedor com base nas escolhas."""
@@ -22,7 +23,7 @@ def obter_escolha_valida(jogador_nome):
             print("Jogada inválida. Tente novamente.")
 
 def main():
-    host = '127.0.0.1'  # localhost
+    host = '192.168.0.4'  # localhost
     port = 65432
 
     # Cria o socket TCP/IP do servidor
@@ -36,32 +37,47 @@ def main():
         conn, addr = s.accept()
         with conn:
             print(f"Jogador 1 (Cliente) conectado de {addr}")
+            print(" =============  BEM-VINDO AO JOGO PEDRA PAPEL TESOURA ============ \n")
+            print("O Jogador 2 (Cliente) começa jogando. Aguarde!")
 
-            # Servidor (Jogador 2) faz sua jogada
-            escolha_servidor = obter_escolha_valida("Servidor (Jogador 2)")
-            print("Servidor (Jogador 2) fez sua jogada. Aguardando jogada do Cliente...")
+            novo_jogo = False
+            while conn:
+                if novo_jogo:
+                    print("Jogador 1 (Cliente) deseja jogar novamente!\n")
+                    print("Aguarde a jogada do Jogador 1")
+                # Cliente Joga
+                escolha_cliente_bytes = conn.recv(1024)
+                if not escolha_cliente_bytes:
+                    print("Cliente desconectado inesperadamente antes de enviar a jogada.")
+                    return
+                escolha_cliente = escolha_cliente_bytes.decode('utf-8')
+                #print(f"Jogador 1 (Cliente) escolheu: {escolha_cliente}")
 
-            # Envia sinal para o cliente indicando que o servidor já jogou
-            conn.sendall("SERVIDOR_PRONTO".encode('utf-8'))
+                # Servidor (Jogador 2) faz sua jogada e envia ao cliente
+                escolha_servidor = obter_escolha_valida("Servidor (Jogador 2)")
+                print("Servidor (Jogador 2) fez sua jogada. Aguardando jogada do Cliente...")
+                conn.sendall(escolha_servidor.encode('utf-8'))
 
-            # Recebe a jogada do cliente
-            escolha_cliente_bytes = conn.recv(1024)
-            if not escolha_cliente_bytes:
-                print("Cliente desconectado inesperadamente antes de enviar a jogada.")
-                return
-            escolha_cliente = escolha_cliente_bytes.decode('utf-8')
-            print(f"Jogador 1 (Cliente) escolheu: {escolha_cliente}")
 
-            # Determina o resultado
-            resultado = determinar_vencedor(escolha_cliente, escolha_servidor)
-            print(f"\n--- Resultado ---")
-            print(f"Jogador 1 (Cliente): {escolha_cliente.capitalize()}")
-            print(f"Jogador 2 (Servidor): {escolha_servidor.capitalize()}")
-            print(f"Resultado: {resultado}")
+                # Determina o resultado
+                resultado = determinar_vencedor(escolha_cliente, escolha_servidor)
+                print(f"\n--- Resultado ---")
+                print(f"Jogador 1 (Cliente): {escolha_cliente.capitalize()}")
+                print(f"Jogador 2 (Servidor): {escolha_servidor.capitalize()}")
+                print(f"Resultado: {resultado}")
 
-            # Envia o resultado para o cliente
-            conn.sendall(resultado.encode('utf-8'))
-            print("Resultado enviado ao cliente.")
+                # Envia o resultado para o cliente
+                conn.sendall(resultado.encode('utf-8'))
+                print("Resultado enviado ao cliente.")
+
+                cliente_joga_novamente = conn.recv(1024).decode('utf-8')
+                if cliente_joga_novamente == 's':
+                    novo_jogo = True
+                    continue
+                else:
+                    print("Jogador 1 (Cliente) encerrou o jogo!")
+                    sleep(1)
+                    break
 
 if __name__ == "__main__":
     main()
